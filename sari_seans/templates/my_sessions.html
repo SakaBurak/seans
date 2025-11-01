@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Seanslarım - Seans Takip Sistemi{% endblock %}
+{% block page_title %}Seanslarım{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtreleme</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Durum</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tümü</option>
+                            <option value="planned" {% if request.GET.status == 'planned' %}selected{% endif %}>Planlandı</option>
+                            <option value="done" {% if request.GET.status == 'done' %}selected{% endif %}>Yapıldı</option>
+                            <option value="canceled" {% if request.GET.status == 'canceled' %}selected{% endif %}>İptal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="month" class="form-label">Ay</label>
+                        <select name="month" id="month" class="form-select">
+                            <option value="">Tümü</option>
+                            {% for month_num, month_name in months %}
+                                <option value="{{ month_num }}" {% if request.GET.month == month_num|stringformat:"s" %}selected{% endif %}>{{ month_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="year" class="form-label">Yıl</label>
+                        <select name="year" id="year" class="form-select">
+                            <option value="">Tümü</option>
+                            {% for year in years %}
+                                <option value="{{ year }}" {% if request.GET.year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-2"></i>Filtrele
+                        </button>
+                        <a href="{% url 'my_sessions' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Temizle
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Seans Listesi</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Danışan</th>
+                                <th>Tarih ve Saat</th>
+                                <th>Tür</th>
+                                <th>Ödeme</th>
+                                <th>Süre</th>
+                                <th>Ücret</th>
+                                <th>Durum</th>
+                                <th>Kesinti</th>
+                                <th>Net Kazanç</th>
+                                <th>Notlar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr>
+                                <td>
+                                    <strong>{{ session.client_name }}</strong>
+                                </td>
+                                <td>{{ session.date|date:"d.m.Y H:i" }}</td>
+                                <td>
+                                    {% if session.session_type == 'online' %}
+                                        <span class="badge bg-primary">Online</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Yüz Yüze</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.payment_method == 'cash' %}
+                                        <span class="badge bg-success">Nakit</span>
+                                    {% elif session.payment_method == 'credit_card' %}
+                                        <span class="badge bg-warning">Kredi Kartı</span>
+                                    {% elif session.payment_method == 'debit_card' %}
+                                        <span class="badge bg-info">Banka Kartı</span>
+                                    {% else %}
+                                        <span class="badge bg-dark">Transfer</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ session.duration }} dk</td>
+                                <td>
+                                    <span class="text-success fw-bold">₺{{ session.price|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    {% if session.status == 'done' %}
+                                        <span class="badge bg-success">Yapıldı</span>
+                                    {% elif session.status == 'planned' %}
+                                        <span class="badge bg-warning">Planlandı</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">İptal</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.status == 'done' %}
+                                        <span class="text-danger">₺{{ session.commission_amount|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.status == 'done' %}
+                                        <span class="text-success fw-bold">₺{{ session.net_amount|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.notes %}
+                                        <span class="text-muted" title="{{ session.notes }}">
+                                            {{ session.notes|truncatechars:30 }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">
+                                    Henüz seans bulunmuyor.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- İstatistikler -->
+{% if sessions %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4 class="text-primary">{{ sessions.count }}</h4>
+                <p class="mb-0">Toplam Seans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4 class="text-success">{{ sessions.filter.status.done.count }}</h4>
+                <p class="mb-0">Tamamlanan</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4 class="text-warning">{{ sessions.filter.status.planned.count }}</h4>
+                <p class="mb-0">Planlanan</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4 class="text-danger">{{ sessions.filter.status.canceled.count }}</h4>
+                <p class="mb-0">İptal</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

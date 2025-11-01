@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Ek Kesinti Yönetimi - Seans Takip Sistemi{% endblock %}
+{% block page_title %}Ek Kesinti Yönetimi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Seans Türü Kesinti Oranları -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-video me-2"></i>Seans Türü Kesinti Oranları</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="session_type">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="session_type" class="form-label">Seans Türü</label>
+                            <select name="session_type" id="session_type" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                <option value="online">Online</option>
+                                <option value="face_to_face">Yüz Yüze</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="rate" class="form-label">Kesinti Oranı (%)</label>
+                            <input type="number" name="rate" id="rate" class="form-control" min="0" max="100" step="0.1" required>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Seans Türü</th>
+                                <th>Oran (%)</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for commission in session_type_commissions %}
+                            <tr>
+                                <td>
+                                    {% if commission.session_type == 'online' %}
+                                        <span class="badge bg-primary">Online</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Yüz Yüze</span>
+                                    {% endif %}
+                                </td>
+                                <td>%{{ commission.rate }}</td>
+                                <td>
+                                    <form method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_session_type">
+                                        <input type="hidden" name="commission_id" value="{{ commission.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bu kesinti oranını silmek istediğinizden emin misiniz?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Henüz seans türü kesinti oranı ayarlanmamış.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ödeme Yöntemi Kesinti Oranları -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Ödeme Yöntemi Kesinti Oranları</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="payment_method">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="payment_method" class="form-label">Ödeme Yöntemi</label>
+                            <select name="payment_method" id="payment_method" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="debit_card">Banka Kartı</option>
+                                <option value="bank_transfer">Havale</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="rate_payment" class="form-label">Kesinti Oranı (%)</label>
+                            <input type="number" name="rate" id="rate_payment" class="form-control" min="0" max="100" step="0.1" required>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Ödeme Yöntemi</th>
+                                <th>Oran (%)</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for commission in payment_method_commissions %}
+                            <tr>
+                                <td>
+                                    {% if commission.payment_method == 'cash' %}
+                                        <span class="badge bg-success">Nakit</span>
+                                    {% elif commission.payment_method == 'credit_card' %}
+                                        <span class="badge bg-warning">Kredi Kartı</span>
+                                    {% elif commission.payment_method == 'debit_card' %}
+                                        <span class="badge bg-info">Banka Kartı</span>
+                                    {% else %}
+                                        <span class="badge bg-dark">Havale</span>
+                                    {% endif %}
+                                </td>
+                                <td>%{{ commission.rate }}</td>
+                                <td>
+                                    <form method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_payment_method">
+                                        <input type="hidden" name="commission_id" value="{{ commission.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bu kesinti oranını silmek istediğinizden emin misiniz?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Henüz ödeme yöntemi kesinti oranı ayarlanmamış.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bilgilendirme -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Bilgilendirme</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Ek Kesinti Sistemi Nasıl Çalışır?</h6>
+                    <ul class="mb-0">
+                        <li><strong>Psikolog Bazında Kesinti:</strong> Her psikologun kendi kesinti oranı vardır (örn: %50)</li>
+                        <li><strong>Seans Türü Kesintisi:</strong> Online/Yüz yüze seanslar için ek kesinti (örn: Online %5)</li>
+                        <li><strong>Ödeme Yöntemi Kesintisi:</strong> Nakit/Kart/Havale için ek kesinti (örn: Kredi Kartı %3)</li>
+                        <li><strong>Toplam Kesinti:</strong> Psikolog + Seans Türü + Ödeme Yöntemi = Toplam Kesinti</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

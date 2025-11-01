@@ -1,0 +1,21 @@
+<!-- sari_seans/templates/panel.html -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Seanslarım</title>
+</head>
+<body>
+    <h2>Merhaba {{ request.user.first_name }}!</h2>
+    <p><a href="{% url 'logout' %}">Çıkış Yap</a></p>
+
+    <h3>Seanslarım</h3>
+    <ul>
+        {% for s in seanslar %}
+            <li>{{ s.date|date:"d.m.Y H:i" }} - {{ s.client_name }} - {{ s.get_status_display }}</li>
+        {% empty %}
+            <li>Hiç seansınız yok.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

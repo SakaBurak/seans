@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Seans Takip Sistemi{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Ay Filtreleme -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">Ay</label>
+                        <select name="month" id="month" class="form-select">
+                            {% for month_num, month_name in months %}
+                                <option value="{{ month_num }}" {% if selected_month == month_num %}selected{% endif %}>
+                                    {{ month_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">Yıl</label>
+                        <select name="year" id="year" class="form-select">
+                            {% for year in years %}
+                                <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>Filtrele
+                        </button>
+                        <a href="{% url 'psychologist_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Temizle
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Genel İstatistik Kartları -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                <h4>{{ total_sessions }}</h4>
+                <p class="mb-0">Toplam Seans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                <h4>₺{{ total_earnings|floatformat:2 }}</h4>
+                <p class="mb-0">Toplam Kazanç</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2"></i>
+                <h4>₺{{ commission_amount|floatformat:2 }}</h4>
+                <p class="mb-0">Kesinti</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-wallet fa-2x mb-2"></i>
+                <h4>₺{{ net_earnings|floatformat:2 }}</h4>
+                <p class="mb-0">Net Kazanç</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seçilen Ay İstatistikleri -->
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-2x mb-2 text-primary"></i>
+                <h4>{{ monthly_sessions_count }}</h4>
+                <p class="mb-0">Bu Ay Seans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2 text-success"></i>
+                <h4>₺{{ monthly_earnings|floatformat:2 }}</h4>
+                <p class="mb-0">Bu Ay Kazanç</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2 text-danger"></i>
+                <h4>₺{{ monthly_commission|floatformat:2 }}</h4>
+                <p class="mb-0">Bu Ay Kesinti</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                <h4>₺{{ monthly_net|floatformat:2 }}</h4>
+                <p class="mb-0">Bu Ay Net</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kesinti Bilgisi -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Kesinti Bilgisi</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Kesinti Oranınız:</strong> 
+                    <span class="badge bg-info">%{{ user.psychologist.commission_rate }}</span>
+                </p>
+                <small class="text-muted">
+                    Bu oran admin tarafından psikolog bazında ayarlanmaktadır.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Son Seanslar -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Son Seanslar</h5>
+                <a href="{% url 'my_sessions' %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye me-1"></i>Tümünü Gör
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Danışan</th>
+                                <th>Tarih</th>
+                                <th>Süre</th>
+                                <th>Ücret</th>
+                                <th>Durum</th>
+                                <th>Net Kazanç</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr>
+                                <td>
+                                    <strong>{{ session.client_name }}</strong>
+                                    {% if session.notes %}
+                                        <br>
+                                        <small class="text-muted">{{ session.notes|truncatechars:50 }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ session.date|date:"d.m.Y H:i" }}</td>
+                                <td>{{ session.duration }} dk</td>
+                                <td>
+                                    <span class="text-success fw-bold">₺{{ session.price|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    {% if session.status == 'done' %}
+                                        <span class="badge bg-success">Yapıldı</span>
+                                    {% elif session.status == 'planned' %}
+                                        <span class="badge bg-warning">Planlandı</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">İptal</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.status == 'done' %}
+                                        <span class="text-success fw-bold">₺{{ session.net_amount|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    Henüz seans bulunmuyor.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

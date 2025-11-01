@@ -1,0 +1,102 @@
+{% extends 'base_assistant.html' %}
+
+{% block title %}Yeni Seans Ekle - Seans Takip Sistemi{% endblock %}
+{% block page_title %}Yeni Seans Ekle{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Yeni Seans Ekle</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="client_name" class="form-label">Danışan Adı *</label>
+                            <input type="text" class="form-control" id="client_name" name="client_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="expert" class="form-label">Psikolog *</label>
+                            <select class="form-select" id="expert" name="expert" required>
+                                <option value="">Psikolog Seçin</option>
+                                {% for psychologist in psychologists %}
+                                    <option value="{{ psychologist.id }}">
+                                        {{ psychologist.user.get_full_name|default:psychologist.user.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="date" class="form-label">Tarih ve Saat *</label>
+                            <input type="datetime-local" class="form-control" id="date" name="date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="duration" class="form-label">Süre (Dakika) *</label>
+                            <input type="number" class="form-control" id="duration" name="duration" min="30" max="180" value="50" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="price" class="form-label">Ücret (₺) *</label>
+                            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Durum *</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="planned">Planlandı</option>
+                                <option value="done">Yapıldı</option>
+                                <option value="canceled">İptal</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="session_type" class="form-label">Seans Türü *</label>
+                            <select class="form-select" id="session_type" name="session_type" required>
+                                <option value="online">Online</option>
+                                <option value="face_to_face">Yüz Yüze</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_method" class="form-label">Ödeme Yöntemi *</label>
+                            <select class="form-select" id="payment_method" name="payment_method" required>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="debit_card">Banka Kartı</option>
+                                <option value="bank_transfer">Banka Transferi</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="notes" class="form-label">Notlar</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Seans hakkında notlar..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Seans Ekle
+                            </button>
+                            <a href="{% url 'assistant_manage_sessions' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>İptal
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

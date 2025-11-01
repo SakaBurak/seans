@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Seans Sil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Seans Silme Onayı</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                </div>
+                
+                <h6 class="mb-3">Bu seansı silmek istediğinizden emin misiniz?</h6>
+                
+                <div class="alert alert-info">
+                    <strong>Seans Detayları:</strong><br>
+                    <strong>Danışan:</strong> {{ session.client_name }}<br>
+                    <strong>Psikolog:</strong> {{ session.expert.user.get_full_name|default:session.expert.user.username }}<br>
+                    <strong>Tarih:</strong> {{ session.date|date:"d.m.Y H:i" }}<br>
+                    <strong>Ücret:</strong> ₺{{ session.price|floatformat:2 }}
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Bu işlem geri alınamaz!
+                </div>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger me-2">
+                        <i class="fas fa-trash me-2"></i>Evet, Sil
+                    </button>
+                </form>
+                
+                <a href="{% url 'manage_sessions' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>İptal
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 500;
+    }
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    }
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
+</style>
+{% endblock %} 

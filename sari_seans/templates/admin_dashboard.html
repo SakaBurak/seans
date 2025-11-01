@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Seans Takip Sistemi{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<!-- Ay Filtreleme -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">Ay</label>
+                        <select name="month" id="month" class="form-select">
+                            {% for month_num, month_name in months %}
+                                <option value="{{ month_num }}" {% if selected_month == month_num %}selected{% endif %}>
+                                    {{ month_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">Yıl</label>
+                        <select name="year" id="year" class="form-select">
+                            {% for year in years %}
+                                <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>Filtrele
+                        </button>
+                        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Temizle
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Genel İstatistik Kartları -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                <h4>{{ total_sessions }}</h4>
+                <p class="mb-0">Toplam Seans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                <h4>₺{{ total_revenue|floatformat:2 }}</h4>
+                <p class="mb-0">Toplam Gelir</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2"></i>
+                <h4>₺{{ total_commission|floatformat:2 }}</h4>
+                <p class="mb-0">Toplam Kesinti</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <h4>{{ psychologists.count }}</h4>
+                <p class="mb-0">Aktif Psikolog</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seçilen Ay İstatistikleri -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-2x mb-2 text-primary"></i>
+                <h4>{{ monthly_sessions_count }}</h4>
+                <p class="mb-0">Bu Ay Seans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2 text-success"></i>
+                <h4>₺{{ monthly_revenue|floatformat:2 }}</h4>
+                <p class="mb-0">Bu Ay Gelir</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2 text-danger"></i>
+                <h4>₺{{ monthly_commission|floatformat:2 }}</h4>
+                <p class="mb-0">Bu Ay Kesinti</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                <h4>₺{{ monthly_net|floatformat:2 }}</h4>
+                <p class="mb-0">Bu Ay Net</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Psikolog İstatistikleri -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Psikolog İstatistikleri</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Psikolog</th>
+                                <th>Kesinti Oranı</th>
+                                <th>Toplam Seans</th>
+                                <th>Toplam Kazanç</th>
+                                <th>Kesinti</th>
+                                <th>Net Kazanç</th>
+                                <th>Bu Ay Seans</th>
+                                <th>Bu Ay Kazanç</th>
+                                <th>Bu Ay Kesinti</th>
+                                <th>Bu Ay Net</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in psychologist_stats %}
+                            <tr>
+                                <td>
+                                    <strong>{{ stat.psychologist.user.get_full_name|default:stat.psychologist.user.username }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ stat.psychologist.user.email }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">%{{ stat.psychologist.commission_rate }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ stat.total_sessions }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">₺{{ stat.total_earnings|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-danger">₺{{ stat.commission_amount|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">₺{{ stat.net_earnings|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ stat.monthly_sessions }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-success">₺{{ stat.monthly_earnings|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-danger">₺{{ stat.monthly_commission|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-success">₺{{ stat.monthly_net|floatformat:2 }}</span>
+                                </td>
+                                <td>
+                                    {% if stat.psychologist.is_active %}
+                                        <span class="badge bg-success">Aktif</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted">
+                                    Henüz psikolog bulunmuyor.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı İşlemler -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Psikolog Yönetimi</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Psikolog ekleme, düzenleme ve silme işlemleri.</p>
+                <a href="{% url 'manage_psychologists' %}" class="btn btn-primary">
+                    <i class="fas fa-cog me-2"></i>Psikolog Yönetimi
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Asistan Yönetimi</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Asistan ekleme ve yönetimi.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAssistantModal">
+                    <i class="fas fa-plus me-2"></i>Yeni Asistan Ekle
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-percentage me-2"></i>Kesinti Yönetimi</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Seans türü ve ödeme yöntemi bazında ek kesinti oranlarını ayarlama.</p>
+                <a href="{% url 'manage_extra_commission' %}" class="btn btn-primary">
+                    <i class="fas fa-cog me-2"></i>Ek Kesinti Yönetimi
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Asistan Listesi -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i>Aktif Asistanlar</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Telefon</th>
+                                <th>Kullanıcı Adı</th>
+                                <th>Kayıt Tarihi</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assistant in assistants %}
+                            <tr>
+                                <td>
+                                    <strong>{{ assistant.user.get_full_name|default:assistant.user.username }}</strong>
+                                </td>
+                                <td>{{ assistant.user.email }}</td>
+                                <td>{{ assistant.phone|default:"-" }}</td>
+                                <td>{{ assistant.user.username }}</td>
+                                <td>{{ assistant.created_at|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if assistant.is_active %}
+                                        <span class="badge bg-success">Aktif</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    Henüz asistan bulunmuyor.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Asistan Ekleme Modal -->
+<div class="modal fade" id="addAssistantModal" tabindex="-1" aria-labelledby="addAssistantModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAssistantModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>Yeni Asistan Ekle
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'add_assistant' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">Kullanıcı Adı *</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">E-posta *</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">Ad *</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Soyad *</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Telefon</label>
+                            <input type="text" class="form-control" id="phone" name="phone" placeholder="555 123 45 67">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="password1" class="form-label">Şifre *</label>
+                            <input type="password" class="form-control" id="password1" name="password1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password2" class="form-label">Şifre (Tekrar) *</label>
+                            <input type="password" class="form-control" id="password2" name="password2" required>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Asistan Yetkileri:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Seans ekleme, düzenleme ve silme</li>
+                            <li>Tüm psikologların seanslarını görüntüleme</li>
+                            <li>Kesinti bilgilerini görme ve değiştirme yetkisi yok</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>İptal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Asistan Ekle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 
