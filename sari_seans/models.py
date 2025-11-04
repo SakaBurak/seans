@@ -162,6 +162,30 @@ class Session(models.Model):
             return breakdown
         return []
     
+    @property
+    def total_commission_rate(self):
+        """Toplam kesinti oranını hesapla (%)"""
+        total_rate = self.expert.commission_rate
+        
+        # Seans bazında ek kesinti oranı
+        total_rate += self.extra_commission_rate
+        
+        # Seans türüne göre ek kesinti
+        try:
+            stc = SessionTypeCommission.objects.get(session_type=self.session_type)
+            total_rate += stc.rate
+        except SessionTypeCommission.DoesNotExist:
+            pass
+        
+        # Ödeme yöntemine göre ek kesinti
+        try:
+            pmc = PaymentMethodCommission.objects.get(payment_method=self.payment_method)
+            total_rate += pmc.rate
+        except PaymentMethodCommission.DoesNotExist:
+            pass
+        
+        return total_rate
+    
     class Meta:
         verbose_name = "Seans"
         verbose_name_plural = "Seanslar"

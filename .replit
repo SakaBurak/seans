@@ -1,0 +1,14 @@
+language = "python3"
+run = "python manage.py runserver 0.0.0.0:$PORT"
+entrypoint = "main.py"
+
+[nix]
+channel = "stable-22_11"
+
+[deploy]
+publicDir = "staticfiles"
+
+[env]
+PYTHONUNBUFFERED = "1"
+DJANGO_SETTINGS_MODULE = "seans.settings"
+

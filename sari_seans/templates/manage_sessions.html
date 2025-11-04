@@ -83,6 +83,7 @@
                             <tr>
                                 <th>Danışan</th>
                                 <th>Psikolog</th>
+                                <th>Kesinti Oranı</th>
                                 <th>Tarih</th>
                                 <th>Süre</th>
                                 <th>Ücret</th>
@@ -104,6 +105,9 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ session.expert.user.get_full_name|default:session.expert.user.username }}</td>
+                                <td>
+                                    <span class="badge bg-info">%{{ session.total_commission_rate|floatformat:2 }}</span>
+                                </td>
                                 <td>{{ session.date|date:"d.m.Y H:i" }}</td>
                                 <td>{{ session.duration }} dk</td>
                                 <td>
@@ -156,7 +160,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="10" class="text-center text-muted">
+                                <td colspan="11" class="text-center text-muted">
                                     Henüz seans bulunmuyor.
                                 </td>
                             </tr>

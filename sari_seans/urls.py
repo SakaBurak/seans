@@ -19,4 +19,6 @@ urlpatterns = [
     path('delete-session/<int:session_id>/', views.delete_session, name='delete_session'),
     path('assistant-delete-session/<int:session_id>/', views.assistant_delete_session, name='assistant_delete_session'),
     path('add-assistant/', views.add_assistant, name='add_assistant'),
+    path('add-psychologist/', views.add_psychologist, name='add_psychologist'),
+    path('edit-psychologist/<int:psychologist_id>/', views.edit_psychologist, name='edit_psychologist'),
 ]

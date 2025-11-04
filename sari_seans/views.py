@@ -7,6 +7,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from .models import Session, Psychologist, SessionTypeCommission, PaymentMethodCommission, Assistant
 from django.contrib.auth.models import User
 
@@ -52,18 +53,20 @@ def admin_dashboard(request):
     for session in Session.objects.filter(status='done'):
         total_commission += session.commission_amount
     
-    # Seçilen ay için istatistikler
-    monthly_sessions = Session.objects.filter(
+    # Seçilen ay için istatistikler (tüm seanslar - durumdan bağımsız)
+    monthly_sessions_all = Session.objects.filter(
         date__month=selected_month,
-        date__year=selected_year,
-        status='done'
+        date__year=selected_year
     )
-    monthly_sessions_count = monthly_sessions.count()
-    monthly_revenue = monthly_sessions.aggregate(Sum('price'))['price__sum'] or 0
+    monthly_sessions_count = monthly_sessions_all.count()
+    
+    # Sadece 'done' durumundaki seanslar için gelir ve kesinti hesaplama
+    monthly_sessions_done = monthly_sessions_all.filter(status='done')
+    monthly_revenue = monthly_sessions_done.aggregate(Sum('price'))['price__sum'] or 0
     
     # Aylık kesinti hesaplama
     monthly_commission = 0
-    for session in monthly_sessions:
+    for session in monthly_sessions_done:
         monthly_commission += session.commission_amount
     
     monthly_net = monthly_revenue - monthly_commission
@@ -76,14 +79,16 @@ def admin_dashboard(request):
         total_sessions_count = all_sessions.count()
         total_earnings = all_sessions.filter(status='done').aggregate(Sum('price'))['price__sum'] or 0
         
-        # Aylık seanslar
-        monthly_psychologist_sessions = all_sessions.filter(
+        # Aylık seanslar (tüm seanslar - durumdan bağımsız)
+        monthly_psychologist_sessions_all = all_sessions.filter(
             date__month=selected_month,
-            date__year=selected_year,
-            status='done'
+            date__year=selected_year
         )
-        monthly_sessions_count = monthly_psychologist_sessions.count()
-        monthly_earnings = monthly_psychologist_sessions.aggregate(Sum('price'))['price__sum'] or 0
+        monthly_psychologist_sessions_count = monthly_psychologist_sessions_all.count()
+        
+        # Sadece 'done' durumundaki seanslar için gelir ve kesinti hesaplama
+        monthly_psychologist_sessions_done = monthly_psychologist_sessions_all.filter(status='done')
+        monthly_earnings = monthly_psychologist_sessions_done.aggregate(Sum('price'))['price__sum'] or 0
         
         # Kesinti hesaplama
         commission_amount = 0
@@ -91,7 +96,7 @@ def admin_dashboard(request):
             commission_amount += session.commission_amount
             
         monthly_commission_amount = 0
-        for session in monthly_psychologist_sessions:
+        for session in monthly_psychologist_sessions_done:
             monthly_commission_amount += session.commission_amount
             
         net_earnings = total_earnings - commission_amount
@@ -103,7 +108,7 @@ def admin_dashboard(request):
             'total_earnings': total_earnings,
             'commission_amount': commission_amount,
             'net_earnings': net_earnings,
-            'monthly_sessions': monthly_sessions_count,
+            'monthly_sessions': monthly_psychologist_sessions_count,
             'monthly_earnings': monthly_earnings,
             'monthly_commission': monthly_commission_amount,
             'monthly_net': monthly_net_earnings,
@@ -327,8 +332,32 @@ def assistant_add_session(request):
         status = request.POST.get('status')
         notes = request.POST.get('notes')
         
+        # Validasyon
         try:
             expert = Psychologist.objects.get(id=expert_id)
+            
+            # Süre kontrolü
+            if duration:
+                try:
+                    duration = int(duration)
+                except ValueError:
+                    messages.error(request, 'Geçersiz süre formatı!')
+                    psychologists = Psychologist.objects.filter(is_active=True)
+                    return render(request, 'assistant_add_session.html', {'psychologists': psychologists})
+            
+            # Ücret kontrolü
+            if price:
+                try:
+                    price = Decimal(str(price))
+                    if price < 0:
+                        messages.error(request, 'Ücret negatif olamaz!')
+                        psychologists = Psychologist.objects.filter(is_active=True)
+                        return render(request, 'assistant_add_session.html', {'psychologists': psychologists})
+                except (ValueError, InvalidOperation):
+                    messages.error(request, 'Geçersiz ücret formatı!')
+                    psychologists = Psychologist.objects.filter(is_active=True)
+                    return render(request, 'assistant_add_session.html', {'psychologists': psychologists})
+            
             session = Session.objects.create(
                 client_name=client_name,
                 expert=expert,
@@ -339,7 +368,7 @@ def assistant_add_session(request):
                 payment_method=payment_method,
                 status=status,
                 notes=notes,
-                extra_commission_rate=0  # Asistan kesinti belirleyemez
+                extra_commission_rate=Decimal('0')  # Asistan kesinti belirleyemez
             )
             messages.success(request, f'{client_name} için seans başarıyla eklendi.')
             return redirect('assistant_manage_sessions')
@@ -363,18 +392,25 @@ def assistant_edit_session(request, session_id):
         session.client_name = request.POST.get('client_name')
         session.expert_id = request.POST.get('expert')
         session.date = request.POST.get('date')
-        session.duration = request.POST.get('duration')
+        
+        # Süre kontrolü
+        duration = request.POST.get('duration')
+        if duration:
+            try:
+                session.duration = int(duration)
+            except ValueError:
+                messages.error(request, 'Geçersiz süre formatı!')
+                return redirect('assistant_edit_session', session_id=session_id)
         
         # Ücret güvenlik kontrolü
         new_price = request.POST.get('price')
         if new_price:
             try:
-                new_price = float(new_price)
-                if new_price < 0:
+                session.price = Decimal(str(new_price))
+                if session.price < 0:
                     messages.error(request, 'Ücret negatif olamaz!')
                     return redirect('assistant_edit_session', session_id=session_id)
-                session.price = new_price
-            except ValueError:
+            except (ValueError, InvalidOperation):
                 messages.error(request, 'Geçersiz ücret formatı!')
                 return redirect('assistant_edit_session', session_id=session_id)
         
@@ -622,14 +658,46 @@ def add_session(request):
         date = request.POST.get('date')
         duration = request.POST.get('duration')
         price = request.POST.get('price')
-        extra_commission_rate = request.POST.get('extra_commission_rate', 0)
+        extra_commission_rate = request.POST.get('extra_commission_rate', '0')
         session_type = request.POST.get('session_type')
         payment_method = request.POST.get('payment_method')
         status = request.POST.get('status')
         notes = request.POST.get('notes')
         
+        # Validasyon
         try:
             expert = Psychologist.objects.get(id=expert_id)
+            
+            # Süre kontrolü
+            if duration:
+                try:
+                    duration = int(duration)
+                except ValueError:
+                    messages.error(request, 'Geçersiz süre formatı!')
+                    psychologists = Psychologist.objects.filter(is_active=True)
+                    return render(request, 'add_session.html', {'psychologists': psychologists})
+            
+            # Ücret kontrolü
+            if price:
+                try:
+                    price = Decimal(str(price))
+                    if price < 0:
+                        messages.error(request, 'Ücret negatif olamaz!')
+                        psychologists = Psychologist.objects.filter(is_active=True)
+                        return render(request, 'add_session.html', {'psychologists': psychologists})
+                except (ValueError, InvalidOperation):
+                    messages.error(request, 'Geçersiz ücret formatı!')
+                    psychologists = Psychologist.objects.filter(is_active=True)
+                    return render(request, 'add_session.html', {'psychologists': psychologists})
+            
+            # Ek kesinti oranı kontrolü
+            if extra_commission_rate == '' or extra_commission_rate is None:
+                extra_commission_rate = '0'
+            try:
+                extra_commission_rate = Decimal(str(extra_commission_rate))
+            except (ValueError, InvalidOperation):
+                extra_commission_rate = Decimal('0')
+            
             session = Session.objects.create(
                 client_name=client_name,
                 expert=expert,
@@ -664,22 +732,36 @@ def edit_session(request, session_id):
         session.client_name = request.POST.get('client_name')
         session.expert_id = request.POST.get('expert')
         session.date = request.POST.get('date')
-        session.duration = request.POST.get('duration')
+        
+        # Süre kontrolü
+        duration = request.POST.get('duration')
+        if duration:
+            try:
+                session.duration = int(duration)
+            except ValueError:
+                messages.error(request, 'Geçersiz süre formatı!')
+                return redirect('edit_session', session_id=session_id)
         
         # Ücret güvenlik kontrolü
         new_price = request.POST.get('price')
         if new_price:
             try:
-                new_price = float(new_price)
-                if new_price < 0:
+                session.price = Decimal(str(new_price))
+                if session.price < 0:
                     messages.error(request, 'Ücret negatif olamaz!')
                     return redirect('edit_session', session_id=session_id)
-                session.price = new_price
-            except ValueError:
+            except (ValueError, InvalidOperation):
                 messages.error(request, 'Geçersiz ücret formatı!')
                 return redirect('edit_session', session_id=session_id)
         
-        session.extra_commission_rate = request.POST.get('extra_commission_rate', 0)
+        # Ek kesinti oranı kontrolü (boş string olabilir)
+        extra_commission_rate = request.POST.get('extra_commission_rate', '0')
+        if extra_commission_rate == '' or extra_commission_rate is None:
+            extra_commission_rate = '0'
+        try:
+            session.extra_commission_rate = Decimal(str(extra_commission_rate))
+        except (ValueError, InvalidOperation):
+            session.extra_commission_rate = Decimal('0')
         session.session_type = request.POST.get('session_type')
         session.payment_method = request.POST.get('payment_method')
         session.status = request.POST.get('status')
@@ -715,6 +797,110 @@ def delete_session(request, session_id):
         'session': session,
     }
     return render(request, 'delete_session.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def add_psychologist(request):
+    """Admin psikolog ekleme"""
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        phone = request.POST.get('phone', '')
+        hourly_rate = request.POST.get('hourly_rate', 0)
+        commission_rate = request.POST.get('commission_rate', 50.00)
+        extra_commission_rate = request.POST.get('extra_commission_rate', 0.00)
+        
+        # Validasyon
+        if password1 != password2:
+            messages.error(request, 'Şifreler eşleşmiyor.')
+            return redirect('manage_psychologists')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Bu kullanıcı adı zaten kullanılıyor.')
+            return redirect('manage_psychologists')
+        
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Bu e-posta adresi zaten kullanılıyor.')
+            return redirect('manage_psychologists')
+        
+        try:
+            # User oluştur
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password=password1
+            )
+            
+            # Psychologist oluştur
+            Psychologist.objects.create(
+                user=user,
+                phone=phone,
+                hourly_rate=hourly_rate,
+                commission_rate=commission_rate,
+                extra_commission_rate=extra_commission_rate,
+                is_active=True
+            )
+            
+            messages.success(request, f'{first_name} {last_name} başarıyla psikolog olarak eklendi.')
+            return redirect('manage_psychologists')
+            
+        except Exception as e:
+            messages.error(request, f'Psikolog eklenirken hata oluştu: {str(e)}')
+            return redirect('manage_psychologists')
+    
+    return redirect('manage_psychologists')
+
+@login_required
+@user_passes_test(is_admin)
+def edit_psychologist(request, psychologist_id):
+    """Admin psikolog düzenleme"""
+    psychologist = get_object_or_404(Psychologist, id=psychologist_id)
+    user = psychologist.user
+    
+    if request.method == 'POST':
+        # User bilgilerini güncelle
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        
+        # Psikolog bilgilerini güncelle
+        psychologist.phone = request.POST.get('phone', psychologist.phone)
+        psychologist.hourly_rate = request.POST.get('hourly_rate', psychologist.hourly_rate)
+        psychologist.commission_rate = request.POST.get('commission_rate', psychologist.commission_rate)
+        psychologist.extra_commission_rate = request.POST.get('extra_commission_rate', psychologist.extra_commission_rate)
+        psychologist.is_active = request.POST.get('is_active') == 'on'
+        
+        # Şifre değiştirme (opsiyonel)
+        new_password = request.POST.get('password1')
+        if new_password:
+            password2 = request.POST.get('password2')
+            if new_password == password2:
+                user.set_password(new_password)
+                messages.success(request, 'Şifre güncellendi.')
+            else:
+                messages.error(request, 'Şifreler eşleşmiyor.')
+                return redirect('edit_psychologist', psychologist_id=psychologist_id)
+        
+        try:
+            user.save()
+            psychologist.save()
+            messages.success(request, f'{user.get_full_name()} başarıyla güncellendi.')
+            return redirect('manage_psychologists')
+        except Exception as e:
+            messages.error(request, f'Güncelleme sırasında hata oluştu: {str(e)}')
+            return redirect('edit_psychologist', psychologist_id=psychologist_id)
+    
+    context = {
+        'psychologist': psychologist,
+        'user': user,
+    }
+    return render(request, 'edit_psychologist.html', context)
 
 @login_required
 @user_passes_test(is_admin)
